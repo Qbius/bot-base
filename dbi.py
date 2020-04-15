@@ -38,7 +38,6 @@ client = discord.Client()
 print('Initializing...')
 
 _ = uuid.uuid1()
-available_webhooks = []
 
 async def resolve(obj):
     if iscoroutine(obj):
@@ -47,11 +46,6 @@ async def resolve(obj):
         [await e for e in obj]
     else:
         pass
-
-def webhook(*, schema):
-    def decorator(fun):
-        available_webhooks.append((schema, fun))
-    return decorator
 
 class webhook_resolver(object):
     def __init__(self, schema):
@@ -86,6 +80,8 @@ class webhook_resolver(object):
             print("error:", e)
             return False
 
+available_webhooks = []
+
 async def find_webhook(request):
     body_encoded = await request.read()
     body = body_encoded.decode()
@@ -101,15 +97,24 @@ async def find_webhook(request):
 
     return web.Response()
 
-app = web.Application()
-app.add_routes([
-    web.post('/', find_webhook)
-])
+http_server = None
 
 async def start_server():
-    await web._run_app(app, port=5000)
+    await web._run_app(http_server, port=5000)
 
-client.loop.create_task(start_server())
+def webhook(*, schema):
+    global http_server
+    if http_server == None:
+        http_server = web.Application()
+        http_server.add_routes([
+            web.post('/', find_webhook)
+        ])
+        client.loop.create_task(start_server())
+
+    def decorator(fun):
+        available_webhooks.append((schema, fun))
+    return decorator
+
 
 def make_discord_interface_decorator(deco):
     def inner(f = None, **kwargs):
