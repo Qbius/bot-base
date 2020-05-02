@@ -1,23 +1,3 @@
-import pickle
-import os
-
-class any_available: pass
-
-class stater:
-
-    def __getattribute__(self, name):
-        attrs = pickle.load(open('state.info', 'rb')) if os.path.exists('state.info') else {}        
-        if name == 'set_default':    
-            return lambda **kwargs: pickle.dump({**kwargs, **attrs}, open('state.info', 'wb')) 
-        else:
-            return attrs[name] if name in attrs else None
-
-    def __setattr__(self, name, value):
-        attrs = pickle.load(open('state.info', 'rb')) if os.path.exists('state.info') else {}
-        pickle.dump({**attrs, name: value}, open('state.info', 'wb'))   
-
-state = stater()
-
 import json
 import uuid
 import discord
@@ -29,6 +9,25 @@ from socketserver import TCPServer
 from aiohttp import web
 from os import mkdir
 from os.path import join, exists
+
+class any_available: pass
+
+class State:
+    def __init__(self, json_path):
+        if not exists(json_path):
+            json.dump({}, open(json_path, 'w'), indent = 4)
+        self.__dict__['path'] = json_path
+        self.__dict__['obj'] = json.load(open(self.path, 'r'))
+        json.dump(self.obj, open(self.path, 'w'), indent = 4)
+    
+    def __getattr__(self, name):
+        return self.obj[name] if name in self.obj else self.__getattribute__(name)
+
+    def __setattr__(self, name, value):
+        self.obj[name] = value
+        json.dump(self.obj, open(self.path, 'w'), indent = 4)
+
+state = State('state.info')
 
 templates_dir = 'templates'
 if not exists(templates_dir):
@@ -161,15 +160,18 @@ async def on_message(msg):
     fun_params = signature(cmd).parameters
     fun_param_names = [param_name for param_name in fun_params.keys() if  param_name != 'message']
 
-    reply = ""
     if len(fun_param_names) != len(args):
         reply = f"Error, expected {len(fun_param_names)} arguments (got {len(args)})\nExpected arguments: "
         reply += ', '.join([f'{arg_name}' + (f' (default: {fun_params.get(arg_name).default})' if fun_params.get(arg_name).default != Parameter.empty else '') for arg_name in fun_param_names])
+        await msg.channel.send(reply)
     else:
         kwargs = {'message': msg} if 'message' in fun_params else {}
         reply = cmd(*args, **kwargs)
+        if isinstance(reply, str):
+            await msg.channel.send(reply)
+        else:
+            await resolve(reply)
 
-    await msg.channel.send(reply)
 ######################################################
 
 @make_discord_interface_decorator
@@ -184,5 +186,23 @@ def loop(*args, seconds = 0, minutes = 0, hours = 0, between = None):
     client.loop.create_task(loop_task())
     print(f"Added task {fun.__name__}")
 
-def run(token = open('bot_token').read().strip()):
+def ensure_channel(server_name, channel_name):
+    try:
+        server = next(guild for guild in client.guilds if guild.name == server_name)
+        return next(channel for channel in server.channels if channel.name == channel_name)
+    except:
+        raise ValueError('Channel not found!')
+
+class colours:
+    success = 2664261
+    failure = 14431557
+    calming = 31743
+    
+def make_embed(*, fields = [], **kwargs):
+    embed = discord.Embed(**kwargs)
+    for name, value in fields:
+        embed.add_field(name = name, value = value, inline = False)
+    return embed
+
+def run(token):
     client.run(token)
