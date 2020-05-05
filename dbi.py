@@ -161,8 +161,10 @@ async def on_message(msg):
     fun_param_names = [param_name for param_name in fun_params.keys() if  param_name != 'message']
 
     if len(fun_param_names) != len(args):
-        reply = f"Error, expected {len(fun_param_names)} arguments (got {len(args)})\nExpected arguments: "
-        reply += ', '.join([f'{arg_name}' + (f' (default: {fun_params.get(arg_name).default})' if fun_params.get(arg_name).default != Parameter.empty else '') for arg_name in fun_param_names])
+        reply = f"Error, expected {len(fun_param_names)} arguments (got {len(args)})"
+        if len(fun_param_names) > 0:
+            reply += '\nExpected arguments: '
+            reply += ', '.join([f'{arg_name}' + (f' (default: {fun_params.get(arg_name).default})' if fun_params.get(arg_name).default != Parameter.empty else '') for arg_name in fun_param_names])
         await msg.channel.send(reply)
     else:
         kwargs = {'message': msg} if 'message' in fun_params else {}
