@@ -147,7 +147,7 @@ def command(*args, prefix = '!', user = any_available, users = any_available, se
 async def on_message(msg):
     if msg.author.bot: return
 
-    cmd_name, *args = msg.content.split(' ')
+    cmd_name, *args = list(filter(lambda s: s, msg.content.split(' ')))
     if cmd_name not in available_commands: return
     cmd, cmd_details = available_commands[cmd_name]
 
@@ -160,19 +160,20 @@ async def on_message(msg):
     fun_params = signature(cmd).parameters
     fun_param_names = [param_name for param_name in fun_params.keys() if  param_name != 'message']
 
-    if len(fun_param_names) != len(args):
-        reply = f"Error, expected {len(fun_param_names)} arguments (got {len(args)})"
-        if len(fun_param_names) > 0:
-            reply += '\nExpected arguments: '
-            reply += ', '.join([f'{arg_name}' + (f' (default: {fun_params.get(arg_name).default})' if fun_params.get(arg_name).default != Parameter.empty else '') for arg_name in fun_param_names])
-        await msg.channel.send(reply)
-    else:
+    if len(fun_param_names) == len(args) or any(param.kind == Parameter.VAR_POSITIONAL for param in fun_params):
         kwargs = {'message': msg} if 'message' in fun_params else {}
         reply = cmd(*args, **kwargs)
         if isinstance(reply, str):
             await msg.channel.send(reply)
         else:
             await resolve(reply)
+    else:
+        reply = f"Error, expected {len(fun_param_names)} arguments (got {len(args)})"
+        if len(fun_param_names) > 0:
+            reply += '\nExpected arguments: '
+            reply += ', '.join([f'{arg_name}' + (f' (default: {fun_params.get(arg_name).default})' if fun_params.get(arg_name).default != Parameter.empty else '') for arg_name in fun_param_names])
+        await msg.channel.send(reply)
+
 
 ######################################################
 
