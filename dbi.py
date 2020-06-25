@@ -196,6 +196,13 @@ def ensure_channel(server_name, channel_name):
     except:
         raise ValueError('Channel not found!')
 
+def ensure_emoji(server_name, emoji_name):
+    try:
+        server = next(guild for guild in client.guilds if guild.name == server_name)
+        return next(emoji for emoji in server.emojis if emoji.name == emoji_name)
+    except:
+        raise ValueError('Emoji not found!')
+
 class colours:
     success = 2664261
     failure = 14431557
