@@ -160,7 +160,7 @@ async def on_message(msg):
     fun_params = signature(cmd).parameters
     fun_param_names = [param_name for param_name in fun_params.keys() if  param_name != 'message']
 
-    if len(fun_param_names) == len(args) or any(param.kind == Parameter.VAR_POSITIONAL for param in fun_params):
+    if len(fun_param_names) == len(args) or any(param.kind == Parameter.VAR_POSITIONAL for param in fun_params.values()):
         kwargs = {'message': msg} if 'message' in fun_params else {}
         reply = cmd(*args, **kwargs)
         if isinstance(reply, str):
