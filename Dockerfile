@@ -10,3 +10,5 @@ RUN apk add python3
 COPY --from=fetcher /usr/lib/python3.8/site-packages /usr/lib/python3.8/site-packages
 WORKDIR /bot
 ADD dbi.py ./
+ADD bot.py ./
+CMD python3 bot.py
