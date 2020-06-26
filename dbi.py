@@ -149,7 +149,7 @@ def onmessage(fun):
 
 @client.event
 async def on_message(msg):
-    [onmessage_event() for onmessage_event in onmessage_events]
+    [resolve(onmessage_event()) for onmessage_event in onmessage_events]
     if msg.author.bot: return
 
     cmd_name, *args = list(filter(lambda s: s, msg.content.split(' ')))
