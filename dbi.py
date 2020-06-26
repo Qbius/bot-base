@@ -143,8 +143,13 @@ def command(*args, prefix = '!', user = any_available, users = any_available, se
     available_commands[f'{prefix}{fun.__name__}'] = (fun, fun_details)
     print(f"Added command {prefix}{fun.__name__}")
 
+onmessage_events = []
+def onmessage(fun):
+    onmessage_events.append(fun)
+
 @client.event
 async def on_message(msg):
+    [onmessage_event() for onmessage_event in onmessage_events]
     if msg.author.bot: return
 
     cmd_name, *args = list(filter(lambda s: s, msg.content.split(' ')))
