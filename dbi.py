@@ -7,7 +7,7 @@ from random import randint
 from http.server import BaseHTTPRequestHandler
 from socketserver import TCPServer
 from aiohttp import web
-from os import mkdir
+from os import mkdir, getcwd
 from os.path import join, exists
 
 class any_available: pass
@@ -33,7 +33,11 @@ templates_dir = 'templates'
 if not exists(templates_dir):
     mkdir(templates_dir)
 
+help_prompt = f"?{getcwd().split('/')[-1]}"
 client = discord.Client()
+async def set_status():
+    await client.change_presence(activity=discord.Activity(type=discord.ActivityType.watching, name=f'for {help_prompt}'))
+asyncio.run(set_status())
 print('Initializing...')
 
 _ = uuid.uuid1()
@@ -125,7 +129,7 @@ def make_discord_interface_decorator(deco):
 ######################################################
 available_commands = dict()
 @make_discord_interface_decorator
-def command(*args, prefix = '!', user = any_available, users = any_available, server = any_available, servers = any_available, channel = any_available, channels = any_available):
+def command(*args, prefix = '!', description = "", user = any_available, users = any_available, server = any_available, servers = any_available, channel = any_available, channels = any_available):
     fun, *_ = args
 
     def construct_list(singular, plurar):
@@ -135,6 +139,7 @@ def command(*args, prefix = '!', user = any_available, users = any_available, se
         return result_list
 
     fun_details = {
+        'description': description,
         'users': construct_list(user, users), 
         'servers': construct_list(server, servers), 
         'channels': construct_list(channel, channels)
@@ -151,6 +156,10 @@ def onmessage(fun):
 async def on_message(msg):
     [resolve(onmessage_event()) for onmessage_event in onmessage_events]
     if msg.author.bot: return
+
+    if msg.content == help_prompt:
+        await msg.channel.send('\n'.join([cmd_name + (f' - {cmd_details["description"]}' if cmd_details["description"] else '') for cmd_name, (_cmd, cmd_details) in available_commands.items()]) if len(available_commands) > 1 else 'No commands found. Spooky...')
+        return
 
     cmd_name, *args = list(filter(lambda s: s, msg.content.split(' ')))
     if cmd_name not in available_commands: return
