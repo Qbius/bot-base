@@ -158,7 +158,7 @@ def onmessage(fun):
 
 @client.event
 async def on_message(msg):
-    [resolve(onmessage_event()) for onmessage_event in onmessage_events]
+    [await resolve(onmessage_event(msg)) for onmessage_event in onmessage_events]
     if msg.author.bot: return
 
     if msg.content == help_prompt:
